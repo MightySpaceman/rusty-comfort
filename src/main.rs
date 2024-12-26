@@ -1,26 +1,12 @@
 use iced::{
     alignment,
-    widget::{
-        button, column, container, horizontal_rule, horizontal_space, row, scrollable, slider,
-        text, text_input, vertical_slider, Column,
-    },
-    Element, Length, Padding, Settings,
+    widget::{column, container, horizontal_space, row, text, vertical_slider},
+    Element, Length, Task, Theme,
 };
 
-use iced::settings;
-use iced::window;
-use iced::Size;
-use iced::Task;
-use iced::Theme;
-
-use iced::{executor, Application};
-
 use std::sync::mpsc::*;
-use std::thread;
-use std::time::Duration;
 
 mod audio;
-use audio::*;
 
 #[derive(Default, Debug, Clone)]
 struct State {
@@ -94,21 +80,27 @@ impl State {
 fn main() -> iced::Result {
     let (tx, rx) = channel();
     audio::run(rx);
+
     let state: State = State {
         volume: 100.0,
         lowpass: 1000.0,
         q: 1.5,
         tx: Some(tx),
     };
+
     state.tx.as_ref().unwrap().send(state.clone());
     let settings = iced::window::settings::Settings {
         size: iced::Size::new(500.0, 700.0),
         resizable: false,
         ..iced::window::Settings::default()
     };
+
     iced::application("Brown Noise Player", State::update, State::view)
         .theme(|_| Theme::Dark)
         .centered()
         .window(settings)
         .run_with(move || (state, Task::none()))
 }
+
+
+
