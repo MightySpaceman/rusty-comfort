@@ -101,6 +101,3 @@ fn main() -> iced::Result {
         .window(settings)
         .run_with(move || (state, Task::none()))
 }
-
-
-

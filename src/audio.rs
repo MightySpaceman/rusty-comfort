@@ -1,14 +1,9 @@
-use std::sync::mpsc::{Receiver, RecvError};
-use std::thread;
-use std::time::Duration;
+use std::sync::mpsc::Receiver;
 
 use crate::State;
 use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
 use cpal::{Device, FromSample, SampleFormat, SizedSample, StreamConfig};
-use fundsp::hacker::{
-    self, hammond_hz, lowpass, lowpass_hz, multipass, reverb_stereo, sine, sine_hz, soft_saw_hz,
-    square_hz,
-};
+use fundsp::hacker::lowpass_hz;
 use fundsp::prelude::*;
 
 pub fn run(receiver: Receiver<State>) {
