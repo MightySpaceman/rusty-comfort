@@ -1,30 +1,33 @@
 use fundsp::shared::Shared;
 use iced::{
     alignment,
-    widget::{column, container, horizontal_space, row, text, vertical_slider},
-    Element, Length, Task, Theme,
+    widget::{
+        button, column, container, horizontal_rule, horizontal_space, row, scrollable, slider,
+        text, text_input, vertical_slider, Column,
+    },
+    Element, Length, Padding, Settings,
 };
 
+use iced::settings;
+use iced::window;
+use iced::Size;
+use iced::Task;
+use iced::Theme;
+
+use iced::{executor, Application};
+
 use std::sync::mpsc::*;
+use std::thread;
+use std::time::Duration;
 
 mod audio;
+use audio::*;
 
-<<<<<<< HEAD
-use std::time::*;
-
-=======
->>>>>>> dev
 #[derive(Clone)]
 struct State {
     volume: Shared,
     lowpass: Shared,
     q: Shared,
-<<<<<<< HEAD
-    polled: bool,
-    lastpoll: SystemTime,
-    tx: Option<Sender<State>>,
-=======
->>>>>>> dev
 }
 
 #[derive(Debug, Clone)]
@@ -39,26 +42,13 @@ impl State {
         match message {
             Message::VolumeChanged(volume) => {
                 self.volume.set(volume);
-<<<<<<< HEAD
-                self.tx.as_ref().unwrap().send(self.clone());
-            }
-            Message::LowPassChanged(pass) => {
-                self.lowpass.set(pass);
-                self.tx.as_ref().unwrap().send(self.clone());
-            }
-            Message::QChanged(q) => {
-                self.q.set(q);
-                self.tx.as_ref().unwrap().send(self.clone());
-=======
             }
             Message::LowPassChanged(pass) => {
                 self.lowpass.set(pass);
             }
             Message::QChanged(q) => {
                 self.q.set(q);
->>>>>>> dev
             }
-
         }
     }
 
@@ -99,23 +89,6 @@ impl State {
 }
 
 fn main() -> iced::Result {
-<<<<<<< HEAD
-    let (tx, rx) = channel();
-    audio::run(rx);
-
-    let now = SystemTime::now();
-    
-    let state: State = State {
-        volume: 100.0,
-        lowpass: 1000.0,
-        q: 1.5,
-        polled: true,
-        lastpoll: now,
-        tx: Some(tx),
-    };
-
-    state.tx.as_ref().unwrap().send(state.clone());
-=======
     let state: State = State {
         volume: Shared::new(1.0),
         lowpass: Shared::new(1000.0),
@@ -124,13 +97,11 @@ fn main() -> iced::Result {
 
     audio::run(state.clone());
 
->>>>>>> dev
     let settings = iced::window::settings::Settings {
         size: iced::Size::new(500.0, 700.0),
         resizable: false,
         ..iced::window::Settings::default()
     };
-
     iced::application("Brown Noise Player", State::update, State::view)
         .theme(|_| Theme::Dark)
         .centered()
