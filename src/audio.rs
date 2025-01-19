@@ -11,23 +11,21 @@ use fundsp::hacker::{
 };
 use fundsp::prelude::*;
 
-pub fn run(receiver: Receiver<State>) {
-    let audio_graph = create_brown_noise(0.5, 300.0, 1.5);
-    println!("Run");
-    let mut state: State = State::default();
-    run_output(audio_graph, receiver);
+pub fn run(state: State) {
+    let audio_graph = create_brown_noise(state);
+    run_output(audio_graph);
 }
 
-fn run_output(audio_graph: Box<dyn AudioUnit>, rx: Receiver<State>) {
+fn run_output(audio_graph: Box<dyn AudioUnit>) {
     let host = cpal::default_host();
     let device = host
         .default_output_device()
         .expect("failed to find a default output device");
     let config = device.default_output_config().unwrap();
     match config.sample_format() {
-        SampleFormat::F32 => run_synth::<f32>(audio_graph, device, config.into(), rx),
-        SampleFormat::I16 => run_synth::<i16>(audio_graph, device, config.into(), rx),
-        SampleFormat::U16 => run_synth::<u16>(audio_graph, device, config.into(), rx),
+        SampleFormat::F32 => run_synth::<f32>(audio_graph, device, config.into()),
+        SampleFormat::I16 => run_synth::<i16>(audio_graph, device, config.into()),
+        SampleFormat::U16 => run_synth::<u16>(audio_graph, device, config.into()),
 
         _ => panic!("Unsupported format"),
     }
@@ -37,20 +35,12 @@ fn run_synth<T: SizedSample + FromSample<f32>>(
     mut audio_graph: Box<dyn AudioUnit>,
     device: Device,
     config: StreamConfig,
-    rx: Receiver<State>,
 ) {
     std::thread::spawn(move || {
         let sample_rate = config.sample_rate.0 as f64;
-        audio_graph = create_brown_noise(1.0, 3000.0, 1.5);
         audio_graph.set_sample_rate(sample_rate);
 
         let mut next_value = move || {
-            let poll = rx.try_recv();
-            if let Ok(state) = poll {
-                // println!("Received new params: {:?}", state.volume/100.0);
-                audio_graph =
-                    create_brown_noise(state.volume / 100.0, state.lowpass, state.q / 10.0);
-            }
             audio_graph.get_stereo()
         };
 
@@ -90,9 +80,11 @@ fn write_data<T: SizedSample + FromSample<f32>>(
     }
 }
 
-fn create_brown_noise(volume: f32, pass: f32, q: f32) -> Box<dyn AudioUnit> {
+fn create_brown_noise(state: State) -> Box<dyn AudioUnit> {
     let brown_stereo = brown::<f64>() | brown::<f64>();
-    let lowpass = lowpass_hz(pass, q) | lowpass_hz(pass, q);
-    println!("{:?}", (volume, pass, q));
-    Box::new((brown_stereo >> lowpass) * volume)
+    let lowpass = lowpass_hz(state.lowpass.value(), state.q.value()) | lowpass_hz(state.lowpass.value(), state.q.value());
+    let filtered = (brown_stereo >> lowpass) * (var(&state.volume) >> follow(0.01) | var(&state.volume) >> follow(0.01));
+    let smooth_start = filtered >> (declick_s(5.0) | declick_s(5.0));
+
+    Box::new(smooth_start)
 }
