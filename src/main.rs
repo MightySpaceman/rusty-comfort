@@ -8,11 +8,15 @@ use std::sync::mpsc::*;
 
 mod audio;
 
-#[derive(Default, Debug, Clone)]
+use std::time::*;
+
+#[derive(Debug, Clone)]
 struct State {
     volume: f32,
     lowpass: f32,
     q: f32,
+    polled: bool,
+    lastpoll: SystemTime,
     tx: Option<Sender<State>>,
 }
 
@@ -38,6 +42,7 @@ impl State {
                 self.q = q;
                 self.tx.as_ref().unwrap().send(self.clone());
             }
+
         }
     }
 
@@ -81,10 +86,14 @@ fn main() -> iced::Result {
     let (tx, rx) = channel();
     audio::run(rx);
 
+    let now = SystemTime::now();
+    
     let state: State = State {
         volume: 100.0,
         lowpass: 1000.0,
         q: 1.5,
+        polled: true,
+        lastpoll: now,
         tx: Some(tx),
     };
 
