@@ -9,16 +9,22 @@ use std::sync::mpsc::*;
 
 mod audio;
 
+<<<<<<< HEAD
 use std::time::*;
 
+=======
+>>>>>>> dev
 #[derive(Clone)]
 struct State {
     volume: Shared,
     lowpass: Shared,
     q: Shared,
+<<<<<<< HEAD
     polled: bool,
     lastpoll: SystemTime,
     tx: Option<Sender<State>>,
+=======
+>>>>>>> dev
 }
 
 #[derive(Debug, Clone)]
@@ -33,6 +39,7 @@ impl State {
         match message {
             Message::VolumeChanged(volume) => {
                 self.volume.set(volume);
+<<<<<<< HEAD
                 self.tx.as_ref().unwrap().send(self.clone());
             }
             Message::LowPassChanged(pass) => {
@@ -42,6 +49,14 @@ impl State {
             Message::QChanged(q) => {
                 self.q.set(q);
                 self.tx.as_ref().unwrap().send(self.clone());
+=======
+            }
+            Message::LowPassChanged(pass) => {
+                self.lowpass.set(pass);
+            }
+            Message::QChanged(q) => {
+                self.q.set(q);
+>>>>>>> dev
             }
 
         }
@@ -54,21 +69,21 @@ impl State {
                 row!(
                     column!(
                         text("Vol"),
-                        vertical_slider(0.0..=1000.0, self.volume * 10.0, |value| {
-                            Message::VolumeChanged(value / 10.0)
+                        vertical_slider(0.0..=100.0, self.volume.value() * 100.0, |value| {
+                            Message::VolumeChanged(value / 100.0)
                         })
                     ),
                     horizontal_space(),
                     column!(
                         text("Depth").align_x(alignment::Horizontal::Center),
-                        vertical_slider(0.0..=7000.0, self.lowpass, |value| {
+                        vertical_slider(0.0..=7000.0, self.lowpass.value(), |value| {
                             Message::LowPassChanged(value)
                         })
                     ),
                     horizontal_space(),
                     column!(
                         text("Bal"),
-                        vertical_slider(0.5..=50.0, self.q * 10.0, |value| {
+                        vertical_slider(0.5..=50.0, self.q.value() * 10.0, |value| {
                             Message::QChanged(value / 10.0)
                         })
                     ),
@@ -84,6 +99,7 @@ impl State {
 }
 
 fn main() -> iced::Result {
+<<<<<<< HEAD
     let (tx, rx) = channel();
     audio::run(rx);
 
@@ -99,6 +115,16 @@ fn main() -> iced::Result {
     };
 
     state.tx.as_ref().unwrap().send(state.clone());
+=======
+    let state: State = State {
+        volume: Shared::new(1.0),
+        lowpass: Shared::new(1000.0),
+        q: Shared::new(1.5),
+    };
+
+    audio::run(state.clone());
+
+>>>>>>> dev
     let settings = iced::window::settings::Settings {
         size: iced::Size::new(500.0, 700.0),
         resizable: false,

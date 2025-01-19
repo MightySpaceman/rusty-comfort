@@ -5,16 +5,39 @@ use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
 use cpal::{Device, FromSample, SampleFormat, SizedSample, StreamConfig};
 use fundsp::hacker::{lowpass_hz, declick};
 use fundsp::prelude::*;
+<<<<<<< HEAD
 use std::time::*;
+=======
+
+pub fn run(state: State) {
+    let audio_graph = create_brown_noise(state);
+    run_output(audio_graph);
+}
+
+fn run_output(audio_graph: Box<dyn AudioUnit>) {
+    let host = cpal::default_host();
+    let device = host
+        .default_output_device()
+        .expect("failed to find a default output device");
+    let config = device.default_output_config().unwrap();
+    match config.sample_format() {
+        SampleFormat::F32 => run_synth::<f32>(audio_graph, device, config.into()),
+        SampleFormat::I16 => run_synth::<i16>(audio_graph, device, config.into()),
+        SampleFormat::U16 => run_synth::<u16>(audio_graph, device, config.into()),
+
+        _ => panic!("Unsupported format"),
+    }
+}
+>>>>>>> dev
 
 fn run_synth<T: SizedSample + FromSample<f32>>(
     mut audio_graph: Box<dyn AudioUnit>,
     device: Device,
     config: StreamConfig,
-    rx: Receiver<State>,
 ) {
     std::thread::spawn(move || {
         let sample_rate = config.sample_rate.0 as f64;
+<<<<<<< HEAD
 
         audio_graph.set_sample_rate(sample_rate);
 
@@ -31,6 +54,12 @@ fn run_synth<T: SizedSample + FromSample<f32>>(
             println!("Run");
             let data = audio_graph.get_stereo();
             data
+=======
+        audio_graph.set_sample_rate(sample_rate);
+
+        let mut next_value = move || {
+            audio_graph.get_stereo()
+>>>>>>> dev
         };
 
         let channels = config.channels as usize;
@@ -101,7 +130,18 @@ fn write_data<T: SizedSample + FromSample<f32>>(
     }
 }
 
+<<<<<<< HEAD
 
 
 
 
+=======
+fn create_brown_noise(state: State) -> Box<dyn AudioUnit> {
+    let brown_stereo = brown::<f64>() | brown::<f64>();
+    let lowpass = lowpass_hz(state.lowpass.value(), state.q.value()) | lowpass_hz(state.lowpass.value(), state.q.value());
+    let filtered = (brown_stereo >> lowpass) * (var(&state.volume) >> follow(0.01) | var(&state.volume) >> follow(0.01));
+    let smooth_start = filtered >> (declick_s(5.0) | declick_s(5.0));
+
+    Box::new(smooth_start)
+}
+>>>>>>> dev
