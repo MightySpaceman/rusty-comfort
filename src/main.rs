@@ -1,3 +1,4 @@
+use fundsp::shared::Shared;
 use iced::{
     alignment,
     widget::{column, container, horizontal_space, row, text, vertical_slider},
@@ -10,11 +11,11 @@ mod audio;
 
 use std::time::*;
 
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 struct State {
-    volume: f32,
-    lowpass: f32,
-    q: f32,
+    volume: Shared,
+    lowpass: Shared,
+    q: Shared,
     polled: bool,
     lastpoll: SystemTime,
     tx: Option<Sender<State>>,
@@ -31,15 +32,15 @@ impl State {
     fn update(&mut self, message: Message) {
         match message {
             Message::VolumeChanged(volume) => {
-                self.volume = volume;
+                self.volume.set(volume);
                 self.tx.as_ref().unwrap().send(self.clone());
             }
             Message::LowPassChanged(pass) => {
-                self.lowpass = pass;
+                self.lowpass.set(pass);
                 self.tx.as_ref().unwrap().send(self.clone());
             }
             Message::QChanged(q) => {
-                self.q = q;
+                self.q.set(q);
                 self.tx.as_ref().unwrap().send(self.clone());
             }
 
