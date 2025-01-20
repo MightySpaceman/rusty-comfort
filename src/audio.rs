@@ -70,11 +70,15 @@ fn create_brown_noise(state: State) -> Box<dyn AudioUnit> {
     let fade_in_time = 3.0;
     let response_time = 0.1;
 
+    // let noise = brown::<f64>();
+    // let noise = pink::<f64>();
+    let noise = white();
+
     let lowpass_var = var(&state.lowpass) >> follow(response_time);
     let q_var = var(&state.q) >> follow(response_time);
     let volume_var = var(&state.volume) >> follow(response_time);
 
     let mono_graph =
-        (brown::<f64>() | lowpass_var | q_var) >> lowpass() * volume_var >> declick_s(fade_in_time);
+        (noise | lowpass_var | q_var) >> lowpass() * volume_var >> declick_s(fade_in_time);
     Box::new(mono_graph.clone() | mono_graph)
 }
