@@ -3,9 +3,7 @@ use iced::{
     widget::{column, container, horizontal_space, row, text, vertical_slider},
     Element, Length, Task, Theme,
 };
-
 use fundsp::hacker::Shared;
-
 mod audio;
 
 #[derive(Clone)]
