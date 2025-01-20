@@ -74,7 +74,7 @@ impl State {
 }
 
 fn main() -> iced::Result {
-    let window_settings= iced::window::settings::Settings {
+    let window_settings = iced::window::settings::Settings {
         size: iced::Size::new(500.0, 700.0),
         resizable: true,
         ..iced::window::Settings::default()

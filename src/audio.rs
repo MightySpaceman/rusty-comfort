@@ -29,9 +29,7 @@ fn write_to_speaker<T: SizedSample + FromSample<f32>>(
         let sample_rate = config.sample_rate.0 as f64;
         audio_graph.set_sample_rate(sample_rate);
 
-        let mut next_value = move || {
-            audio_graph.get_stereo()
-        };
+        let mut next_value = move || audio_graph.get_stereo();
 
         let channels = config.channels as usize;
         let err_fn = |err| eprintln!("An error occurred on stream: {err}");
@@ -76,6 +74,7 @@ fn create_brown_noise(state: State) -> Box<dyn AudioUnit> {
     let q_var = var(&state.q) >> follow(response_time);
     let volume_var = var(&state.volume) >> follow(response_time);
 
-    let mono_graph = (brown::<f64>() | lowpass_var | q_var) >> lowpass() * volume_var >> declick_s(fade_in_time);
+    let mono_graph =
+        (brown::<f64>() | lowpass_var | q_var) >> lowpass() * volume_var >> declick_s(fade_in_time);
     Box::new(mono_graph.clone() | mono_graph)
 }
