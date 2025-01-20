@@ -1,37 +1,26 @@
-use std::sync::mpsc::{Receiver, RecvError};
-use std::thread;
-use std::time::Duration;
-
 use crate::State;
 use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
 use cpal::{Device, FromSample, SampleFormat, SizedSample, StreamConfig};
-use fundsp::hacker::{
-    self, hammond_hz, lowpass, lowpass_hz, multipass, reverb_stereo, sine, sine_hz, soft_saw_hz,
-    square_hz,
-};
+use fundsp::hacker::lowpass;
 use fundsp::prelude::*;
 
 pub fn run(state: State) {
     let audio_graph = create_brown_noise(state);
-    run_output(audio_graph);
-}
-
-fn run_output(audio_graph: Box<dyn AudioUnit>) {
     let host = cpal::default_host();
     let device = host
         .default_output_device()
-        .expect("failed to find a default output device");
+        .expect("Error: failed to find a default output device");
     let config = device.default_output_config().unwrap();
     match config.sample_format() {
-        SampleFormat::F32 => run_synth::<f32>(audio_graph, device, config.into()),
-        SampleFormat::I16 => run_synth::<i16>(audio_graph, device, config.into()),
-        SampleFormat::U16 => run_synth::<u16>(audio_graph, device, config.into()),
+        SampleFormat::F32 => write_to_speaker::<f32>(audio_graph, device, config.into()),
+        SampleFormat::I16 => write_to_speaker::<i16>(audio_graph, device, config.into()),
+        SampleFormat::U16 => write_to_speaker::<u16>(audio_graph, device, config.into()),
 
-        _ => panic!("Unsupported format"),
+        _ => panic!("Error: unsupported system audio format"),
     }
 }
 
-fn run_synth<T: SizedSample + FromSample<f32>>(
+fn write_to_speaker<T: SizedSample + FromSample<f32>>(
     mut audio_graph: Box<dyn AudioUnit>,
     device: Device,
     config: StreamConfig,
@@ -40,12 +29,10 @@ fn run_synth<T: SizedSample + FromSample<f32>>(
         let sample_rate = config.sample_rate.0 as f64;
         audio_graph.set_sample_rate(sample_rate);
 
-        let mut next_value = move || {
-            audio_graph.get_stereo()
-        };
+        let mut next_value = move || audio_graph.get_stereo();
 
         let channels = config.channels as usize;
-        let err_fn = |err| eprintln!("an error occurred on stream: {err}");
+        let err_fn = |err| eprintln!("An error occurred on stream: {err}");
         let stream = device
             .build_output_stream(
                 &config,
@@ -73,7 +60,6 @@ fn write_data<T: SizedSample + FromSample<f32>>(
         let sample = next_sample();
         let left: T = T::from_sample(sample.0);
         let right: T = T::from_sample(sample.1);
-
         for (channel, sample) in frame.iter_mut().enumerate() {
             *sample = if channel & 1 == 0 { left } else { right };
         }
@@ -81,10 +67,15 @@ fn write_data<T: SizedSample + FromSample<f32>>(
 }
 
 fn create_brown_noise(state: State) -> Box<dyn AudioUnit> {
-    let brown_stereo = brown::<f64>() | brown::<f64>();
-    let lowpass = lowpass_hz(state.lowpass.value(), state.q.value()) | lowpass_hz(state.lowpass.value(), state.q.value());
-    let filtered = (brown_stereo >> lowpass) * (var(&state.volume) >> follow(0.01) | var(&state.volume) >> follow(0.01));
-    let smooth_start = filtered >> (declick_s(5.0) | declick_s(5.0));
+    let fade_in_time = 3.0;
+    let response_time = 0.1;
 
-    Box::new(smooth_start)
+    let lowpass_var = var(&state.lowpass) >> follow(response_time);
+    let q_var = var(&state.q) >> follow(response_time);
+    let volume_var = var(&state.volume) >> follow(response_time);
+
+    let noise = brown::<f64>();
+    let mono_graph =
+        (noise | lowpass_var | q_var) >> lowpass() * volume_var >> declick_s(fade_in_time);
+    Box::new(mono_graph.clone() | mono_graph)
 }

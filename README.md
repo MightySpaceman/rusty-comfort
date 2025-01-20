@@ -1,6 +1,11 @@
 # rusty-comfort
 Brown noise player made in Rust with Iced/FunDSP
 
-Don't judge the name choice, I couldn't be bothered to come up with something better. It's alright though I guess
+Simple, but works well :3
 
-Working on getting the jarring sound when changing parameters fixed.
+## Todo:
+[] Flesh out UI
+[] Add config file to remember settings
+[] Add white/pink noise options
+[] Add menu to config the above two
+[] Publish to AUR
