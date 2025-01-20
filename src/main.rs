@@ -88,7 +88,7 @@ fn main() -> iced::Result {
 
     audio::run(audio_state.clone());
 
-    iced::application("Brown Noise Player", State::update, State::view)
+    iced::application("Rusty-Comfort", State::update, State::view)
         .theme(|_| Theme::Dark)
         .centered()
         .window(window_settings)
