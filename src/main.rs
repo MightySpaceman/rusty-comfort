@@ -1,12 +1,13 @@
+use fundsp::hacker::Shared;
 use iced::{
     alignment,
     widget::{column, container, horizontal_space, row, text, vertical_slider},
     Element, Length, Task, Theme,
 };
-use fundsp::hacker::Shared;
 mod audio;
+mod config;
 
-#[derive(Clone)]
+#[derive(Clone, Default)]
 struct State {
     volume: Shared,
     lowpass: Shared,
@@ -56,7 +57,7 @@ impl State {
                     horizontal_space(),
                     column!(
                         text("Soft"),
-                        vertical_slider(0.5..=1000.0, self.q.value() * 1000.0, |value| {
+                        vertical_slider(0.5..=700.0, self.q.value() * 1000.0, |value| {
                             Message::QChanged(value / 1000.0)
                         })
                     ),
@@ -72,6 +73,8 @@ impl State {
 }
 
 fn main() -> iced::Result {
+    let config = config::read();
+
     let window_settings = iced::window::settings::Settings {
         size: iced::Size::new(500.0, 700.0),
         resizable: true,
@@ -79,9 +82,9 @@ fn main() -> iced::Result {
     };
 
     let audio_state: State = State {
-        volume: Shared::new(1.0),
-        lowpass: Shared::new(1000.0),
-        q: Shared::new(1.5),
+        volume: Shared::new(config.volume),
+        lowpass: Shared::new(config.lowpass),
+        q: Shared::new(config.q),
     };
 
     audio::run(audio_state.clone());

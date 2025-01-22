@@ -1,20 +1,20 @@
-use crate::State;
+use crate::{config, State};
 use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
 use cpal::{Device, FromSample, SampleFormat, SizedSample, StreamConfig};
 use fundsp::hacker::lowpass;
 use fundsp::prelude::*;
 
 pub fn run(state: State) {
-    let audio_graph = create_brown_noise(state);
+    let audio_graph = create_brown_noise(state.clone());
     let host = cpal::default_host();
     let device = host
         .default_output_device()
         .expect("Error: failed to find a default output device");
     let config = device.default_output_config().unwrap();
     match config.sample_format() {
-        SampleFormat::F32 => write_to_speaker::<f32>(audio_graph, device, config.into()),
-        SampleFormat::I16 => write_to_speaker::<i16>(audio_graph, device, config.into()),
-        SampleFormat::U16 => write_to_speaker::<u16>(audio_graph, device, config.into()),
+        SampleFormat::F32 => write_to_speaker::<f32>(audio_graph, device, config.into(), state),
+        SampleFormat::I16 => write_to_speaker::<i16>(audio_graph, device, config.into(), state),
+        SampleFormat::U16 => write_to_speaker::<u16>(audio_graph, device, config.into(), state),
 
         _ => panic!("Error: unsupported system audio format"),
     }
@@ -24,6 +24,7 @@ fn write_to_speaker<T: SizedSample + FromSample<f32>>(
     mut audio_graph: Box<dyn AudioUnit>,
     device: Device,
     config: StreamConfig,
+    state: State,
 ) {
     std::thread::spawn(move || {
         let sample_rate = config.sample_rate.0 as f64;
@@ -47,6 +48,7 @@ fn write_to_speaker<T: SizedSample + FromSample<f32>>(
         stream.play().unwrap();
         loop {
             std::thread::sleep(std::time::Duration::from_millis(1000));
+            config::write(&state);
         }
     });
 }
