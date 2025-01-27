@@ -395,18 +395,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "brownnoise"
-version = "0.1.0"
-dependencies = [
- "cpal",
- "fundsp",
- "iced",
- "serde",
- "shellexpand",
- "toml",
-]
-
-[[package]]
 name = "bumpalo"
 version = "3.16.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2931,6 +2919,18 @@ dependencies = [
  "libc",
  "linux-raw-sys 0.4.14",
  "windows-sys 0.52.0",
+]
+
+[[package]]
+name = "rusty-comfort"
+version = "0.1.0"
+dependencies = [
+ "cpal",
+ "fundsp",
+ "iced",
+ "serde",
+ "shellexpand",
+ "toml",
 ]
 
 [[package]]

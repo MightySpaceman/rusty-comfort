@@ -30,7 +30,17 @@ fn write_to_speaker<T: SizedSample + FromSample<f32>>(
         let sample_rate = config.sample_rate.0 as f64;
         audio_graph.set_sample_rate(sample_rate);
 
-        let mut next_value = move || audio_graph.get_stereo();
+        let mut net = Net::new(0, 2);
+        let id = net.push(audio_graph.clone());
+        net.pipe_output(id);
+        let mut backend = net.backend();
+        backend.set_sample_rate(sample_rate);
+
+
+        let mut next_value = move || { 
+            backend.get_stereo()
+            // audio_graph.get_stereo()
+        };
 
         let channels = config.channels as usize;
         let err_fn = |err| eprintln!("An error occurred on stream: {err}");
