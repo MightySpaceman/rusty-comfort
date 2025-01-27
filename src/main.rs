@@ -1,9 +1,8 @@
-use fundsp::hacker::Shared;
+use fundsp::{funutd::noise::Noise, hacker::Shared};
 use iced::{
-    alignment, daemon::DefaultStyle, widget::{button, column, container, horizontal_space, row, text, vertical_slider}, Element, Length, Point, Task, Theme
+    ContentFit, alignment, daemon::DefaultStyle, widget::{image, button, column, container, horizontal_space, pick_list, row, text, vertical_slider, vertical_space}, Element, Length, Point, Task, Theme
 };
-use iced::widget::overlay::menu::*;
-use std::{borrow::Cow, sync::Arc};
+use std::sync::mpsc;
 mod audio;
 mod config;
 
@@ -12,7 +11,8 @@ struct State {
     volume: Shared,
     lowpass: Shared,
     q: Shared,
-    mode: NoiseMode,
+    mode: Option<NoiseMode>,
+    muted: bool,
 }
 
 #[derive(Debug, Clone)]
@@ -20,19 +20,37 @@ enum Message {
     VolumeChanged(f32),
     LowPassChanged(f32),
     QChanged(f32),
-    modeChanged(NoiseMode),
+    ModeChanged(NoiseMode),
+    MuteToggle,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 enum NoiseMode {
+    #[default]
     Brown,
     White,
     Pink,
 }
 
-impl Default for NoiseMode {
-    fn default() -> Self {
-        Self::Brown
+impl NoiseMode {
+    const ALL: [NoiseMode; 3] = [
+        Self::Brown,
+        Self::White,
+        Self::Pink,
+    ];
+}
+
+impl std::fmt::Display for NoiseMode {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "{}",
+            match self {
+                Self::Brown => "Brown",
+                Self::White => "White",
+                Self::Pink => "Pink",
+            }
+        )
     }
 }
 
@@ -48,34 +66,35 @@ impl State {
             Message::QChanged(q) => {
                 self.q.set(q);
             }
-            Message::modeChanged(mode) => {
+            Message::ModeChanged(mode) => {
+                self.mode = Some(mode);
+                // println!("{}", mode);
                 match mode {
-                    NoiseMode::Brown => { println!("Brown") },
-                    _ => println!("Other"),
+                    NoiseMode::Brown => { 
+                        println!("Brown"); 
+                    },
+                    NoiseMode::White => {
+                        println!("White");
+                    }
+                    NoiseMode::Pink => {
+                        println!("Pink");
+                    }
                 }
+            }
+            Message::MuteToggle => {
+                println!("Mute toggled");
             }
         }
     }
 
     fn view(&self) -> Element<Message> {
-        let mut menustate = iced::overlay::menu::State::new(); 
-        let menu_options = vec!["Brown", "White", "Pink"];
-        let mut hovered_option = Option::Some(usize::default());
-        let on_selected = |option: &str| {
-            Message::VolumeChanged(self.volume.value())
-        };
-        let on_option_hovered: &dyn Fn(&str) -> Message = &|option| {
-            Message::VolumeChanged(self.volume.value())
-        };
-        let binding = &<Theme as iced::overlay::menu::Catalog>::default();
-        let on_option_hovered_option = Option::Some(on_option_hovered);
-        let menu: Menu<'_, '_, &str, Message, Theme, iced::Renderer> = Menu::new(&mut menustate, &menu_options, &mut hovered_option, on_selected, on_option_hovered_option, binding);
-        let mut content = row![];
-
         container(
             column!(
                 container(text("Rusty-Comfort").size(25)).padding(30),
                 row!(
+                    pick_list(&NoiseMode::ALL[..], self.mode, Message::ModeChanged),
+                    horizontal_space(),
+                    button(iced::widget::Image::new("mute.png").content_fit(ContentFit::Cover)).width(50).height(35).on_press(Message::MuteToggle)
                 ),
                 row!(
                     column!(
@@ -123,7 +142,8 @@ fn main() -> iced::Result {
         volume: Shared::new(config.volume),
         lowpass: Shared::new(config.lowpass),
         q: Shared::new(config.q),
-        mode: NoiseMode::default(),
+        mode: Some(NoiseMode::Brown),
+        muted: false,
     };
 
     audio::run(audio_state.clone());
