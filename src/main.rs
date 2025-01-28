@@ -1,12 +1,10 @@
-use fundsp::{funutd::noise::Noise, hacker::Shared};
+use fundsp::hacker::Shared;
 use iced::{
     alignment,
-    daemon::DefaultStyle,
     widget::{
         button, column, container, horizontal_space, image, pick_list, row, text, vertical_slider,
-        vertical_space,
     },
-    ContentFit, Element, Length, Point, Task, Theme,
+    ContentFit, Element, Length, Task, Theme,
 };
 use std::sync::mpsc::*;
 mod audio;
@@ -64,7 +62,7 @@ impl std::fmt::Display for NoiseMode {
                 Self::Brown => "Brown",
                 Self::White => "White",
                 Self::Pink => "Pink",
-                Self::Muted => "Muted"
+                Self::Muted => "Muted",
             }
         )
     }
@@ -84,16 +82,19 @@ impl AppState {
             }
             Message::ModeChanged(mode) => {
                 self.mode = Some(mode);
-                self.sender.send(mode);
+                self.sender.send(mode).expect("State send error");
             }
             Message::MuteToggle => {
                 if !self.muted {
-                    self.sender.send(NoiseMode::Muted);
+                    self.sender
+                        .send(NoiseMode::Muted)
+                        .expect("State send error");
                 } else {
-                    self.sender.send(self.mode.unwrap());
+                    self.sender
+                        .send(self.mode.unwrap())
+                        .expect("State send error");
                 }
                 self.muted = !self.muted;
-
             }
         }
     }
@@ -105,7 +106,7 @@ impl AppState {
                 row!(
                     pick_list(&NoiseMode::ALL[..], self.mode, Message::ModeChanged),
                     horizontal_space(),
-                    button(iced::widget::Image::new("mute.png").content_fit(ContentFit::Cover))
+                    button(image("mute.png").content_fit(ContentFit::Cover))
                         .width(50)
                         .height(35)
                         .on_press(Message::MuteToggle)
@@ -113,9 +114,11 @@ impl AppState {
                 row!(
                     column!(
                         text("Vol"),
-                        vertical_slider(0.0..=1000.0, self.audiostate.volume.value() * 1000.0, |value| {
-                            Message::VolumeChanged(value / 1000.0)
-                        })
+                        vertical_slider(
+                            0.0..=1000.0,
+                            self.audiostate.volume.value() * 1000.0,
+                            |value| { Message::VolumeChanged(value / 1000.0) }
+                        )
                     ),
                     horizontal_space(),
                     column!(

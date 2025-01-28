@@ -1,4 +1,4 @@
-use crate::{config, AppState, AudioState, NoiseMode};
+use crate::{config, AudioState, NoiseMode};
 use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
 use cpal::{Device, FromSample, SampleFormat, SizedSample, StreamConfig};
 use fundsp::hacker::lowpass;
@@ -29,7 +29,8 @@ fn run_graph<T: SizedSample + FromSample<f32>>(
     std::thread::spawn(move || {
         let mut net = Net::new(0, 2);
 
-        let initial_graph = Box::new(unit::<U0, U2>(generate_brown(&state)) >> (declick_s(3.0) | declick_s(3.0)));
+        let initial_graph =
+            Box::new(unit::<U0, U2>(generate_brown(&state)) >> (declick_s(3.0) | declick_s(3.0)));
 
         let id = net.push(initial_graph);
         net.pipe_output(id);
@@ -43,11 +44,13 @@ fn run_graph<T: SizedSample + FromSample<f32>>(
             if let Ok(mode) = poll {
                 let mut fade_time = 1.0;
                 let new_graph: Box<dyn AudioUnit> = match mode {
-                    NoiseMode::Brown => { generate_brown(&closure_state) },
-                    NoiseMode::White => { generate_white(&closure_state) },
-                    NoiseMode::Pink => { generate_pink(&closure_state) },
-                    NoiseMode::Muted => { fade_time = 0.30; Box::new(DummyUnit::new(0, 2)) },
-                    _ => { generate_brown(&closure_state) },
+                    NoiseMode::Brown => generate_brown(&closure_state),
+                    NoiseMode::White => generate_white(&closure_state),
+                    NoiseMode::Pink => generate_pink(&closure_state),
+                    NoiseMode::Muted => {
+                        fade_time = 0.30;
+                        Box::new(DummyUnit::new(0, 2))
+                    }
                 };
                 // net.replace(id, new_graph);
                 net.crossfade(id, Fade::Smooth, fade_time, new_graph);
@@ -112,8 +115,6 @@ fn filter(state: &AudioState, node: Box<dyn AudioUnit>) -> Box<dyn AudioUnit> {
     let volume_var = var(&state.volume) >> follow(response_time);
 
     let noise = unit::<U0, U1>(node);
-    let mono_graph =
-        (noise | lowpass_var | q_var) >> lowpass() * volume_var;
+    let mono_graph = (noise | lowpass_var | q_var) >> lowpass() * volume_var;
     Box::new(mono_graph.clone() | mono_graph)
 }
-

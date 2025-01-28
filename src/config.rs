@@ -1,4 +1,4 @@
-use crate::{AppState, AudioState};
+use crate::AudioState;
 use serde::{Deserialize, Serialize};
 use shellexpand;
 use std::{
@@ -44,7 +44,7 @@ pub fn write(cfg: Config) {
     if !Path::new(&config_path.as_str()).exists() {
         create_dir_all(&config_path).expect("Could not create config directory!");
     }
-    let thing = config_path.push_str(CONFIG_FILENAME);
+    config_path.push_str(CONFIG_FILENAME);
     let mut f = File::create(&config_path).expect("Could not create config file!");
     let cfg_str = to_string(&cfg).expect("Could not Serialize config!");
     f.write_all(cfg_str.as_bytes())
