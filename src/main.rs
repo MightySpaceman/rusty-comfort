@@ -27,6 +27,12 @@ struct AudioState {
     q: Shared,
 }
 
+impl Into<AudioState> for AppState {
+    fn into(self) -> AudioState {
+        self.audiostate
+    }
+}
+
 #[derive(Debug, Clone)]
 enum Message {
     VolumeChanged(f32),
@@ -78,20 +84,7 @@ impl AppState {
             }
             Message::ModeChanged(mode) => {
                 self.mode = Some(mode);
-                match mode {
-                    NoiseMode::Brown => {
-                        println!("Brown");
-                    }
-                    NoiseMode::White => {
-                        println!("White");
-                    }
-                    NoiseMode::Pink => {
-                        println!("Pink");
-                    }
-                    NoiseMode::Muted => {
-                        println!("Muted");
-                    }
-                }
+                self.sender.send(mode);
             }
             Message::MuteToggle => {
                 if !self.muted {
@@ -172,7 +165,7 @@ fn main() -> iced::Result {
         sender: tx,
     };
 
-    audio::run(state.clone(), rx);
+    audio::run(state.clone().into(), rx);
 
     iced::application("Rusty-Comfort", AppState::update, AppState::view)
         .theme(|_| Theme::Dark)
