@@ -88,40 +88,27 @@ fn write_to_speaker<T: SizedSample + FromSample<f32>>(
 }
 
 fn generate_brown(state: &AudioState) -> Box<dyn AudioUnit> {
-    let response_time = 0.1;
-
-    let lowpass_var = var(&state.lowpass) >> follow(response_time);
-    let q_var = var(&state.q) >> follow(response_time);
-    let volume_var = var(&state.volume) >> follow(response_time);
-
-    let noise = brown::<f64>();
-    let mono_graph =
-        (noise | lowpass_var | q_var) >> lowpass() * volume_var;
-    Box::new(mono_graph.clone() | mono_graph)
+    filter(state, Box::new(brown::<f64>()))
 }
 
 fn generate_white(state: &AudioState) -> Box<dyn AudioUnit> {
-    let response_time = 0.1;
-
-    let lowpass_var = var(&state.lowpass) >> follow(response_time);
-    let q_var = var(&state.q) >> follow(response_time);
-    let volume_var = var(&state.volume) >> follow(response_time);
-
-    let noise = white();
-    let mono_graph =
-        (noise | lowpass_var | q_var) >> lowpass() * volume_var;
-    Box::new(mono_graph.clone() | mono_graph)
+    filter(state, Box::new(white()))
 }
 
 fn generate_pink(state: &AudioState) -> Box<dyn AudioUnit> {
+    filter(state, Box::new(pink::<f64>()))
+}
+
+fn filter(state: &AudioState, node: Box<dyn AudioUnit>) -> Box<dyn AudioUnit> {
     let response_time = 0.1;
 
     let lowpass_var = var(&state.lowpass) >> follow(response_time);
     let q_var = var(&state.q) >> follow(response_time);
     let volume_var = var(&state.volume) >> follow(response_time);
 
-    let noise = pink::<f64>();
+    let noise = unit::<U0, U1>(node);
     let mono_graph =
         (noise | lowpass_var | q_var) >> lowpass() * volume_var;
     Box::new(mono_graph.clone() | mono_graph)
 }
+
