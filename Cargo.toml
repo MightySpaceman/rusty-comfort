@@ -1,12 +1,12 @@
 [package]
-name = "brownnoise"
+name = "rusty-comfort"
 version = "0.1.0"
 edition = "2021"
 
 [dependencies]
 cpal = "0.15.3"
 fundsp = "0.20.0"
-iced = "0.13.1"
+iced = { version = "0.13.1", features = ["image"] }
 serde = "1.0.217"
 shellexpand = "3.1.0"
 toml = "0.8.19"
