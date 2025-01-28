@@ -1,4 +1,4 @@
-use crate::State;
+use crate::{AppState, AudioState};
 use serde::{Deserialize, Serialize};
 use shellexpand;
 use std::{
@@ -29,19 +29,24 @@ impl Default for Config {
     }
 }
 
-pub fn write(state: &State) {
+impl Into<Config> for AudioState {
+    fn into(self) -> Config {
+        Config {
+            volume: self.volume.value(),
+            lowpass: self.lowpass.value(),
+            q: self.q.value(),
+        }
+    }
+}
+
+pub fn write(cfg: Config) {
     let mut config_path = get_config_path();
     if !Path::new(&config_path.as_str()).exists() {
         create_dir_all(&config_path).expect("Could not create config directory!");
     }
     let thing = config_path.push_str(CONFIG_FILENAME);
     let mut f = File::create(&config_path).expect("Could not create config file!");
-    let config = Config {
-        volume: state.volume.value(),
-        lowpass: state.lowpass.value(),
-        q: state.q.value(),
-    };
-    let cfg_str = to_string(&config).expect("Could not Serialize config!");
+    let cfg_str = to_string(&cfg).expect("Could not Serialize config!");
     f.write_all(cfg_str.as_bytes())
         .expect("Could not write config file!");
 }
@@ -56,12 +61,12 @@ pub fn read() -> Config {
             let mut contents = String::new();
             f.read_to_string(&mut contents)
                 .expect("Could not read from file!");
-            let state: Config = toml::from_str(&contents).expect("Could not Deserialize config!");
-            state
+            let cfg: Config = toml::from_str(&contents).expect("Could not Deserialize config!");
+            cfg
         }
         Err(e) => {
             println!("Could not load config file! E: {e}\nCreating and starting with default settings...");
-            write(&State::default());
+            write(Config::default());
             Config::default()
         }
     }

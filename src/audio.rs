@@ -1,30 +1,32 @@
-use crate::{config, State};
+use crate::{config, AppState, AudioState, NoiseMode};
 use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
 use cpal::{Device, FromSample, SampleFormat, SizedSample, StreamConfig};
 use fundsp::hacker::lowpass;
 use fundsp::prelude::*;
+use std::sync::mpsc::*;
 
-pub fn run(state: State) {
-    let audio_graph = create_brown_noise(state.clone());
+pub fn run(state: AudioState, rx: Receiver<NoiseMode>) {
+    let audio_graph = generate_brown(&state);
     let host = cpal::default_host();
     let device = host
         .default_output_device()
         .expect("Error: failed to find a default output device");
     let config = device.default_output_config().unwrap();
     match config.sample_format() {
-        SampleFormat::F32 => write_to_speaker::<f32>(audio_graph, device, config.into(), state),
-        SampleFormat::I16 => write_to_speaker::<i16>(audio_graph, device, config.into(), state),
-        SampleFormat::U16 => write_to_speaker::<u16>(audio_graph, device, config.into(), state),
+        SampleFormat::F32 => run_graph::<f32>(audio_graph, device, config.into(), state, rx),
+        SampleFormat::I16 => run_graph::<i16>(audio_graph, device, config.into(), state, rx),
+        SampleFormat::U16 => run_graph::<u16>(audio_graph, device, config.into(), state, rx),
 
         _ => panic!("Error: unsupported system audio format"),
     }
 }
 
-fn write_to_speaker<T: SizedSample + FromSample<f32>>(
+fn run_graph<T: SizedSample + FromSample<f32>>(
     mut audio_graph: Box<dyn AudioUnit>,
     device: Device,
     config: StreamConfig,
-    state: State,
+    state: AudioState,
+    rx: Receiver<NoiseMode>,
 ) {
     std::thread::spawn(move || {
         let sample_rate = config.sample_rate.0 as f64;
@@ -36,10 +38,15 @@ fn write_to_speaker<T: SizedSample + FromSample<f32>>(
         let mut backend = net.backend();
         backend.set_sample_rate(sample_rate);
 
-
-        let mut next_value = move || { 
+        let mut next_value = move || {
+            let poll = rx.try_recv();
+            if let Ok(mode) = poll {
+                let new_graph: Box<dyn AudioUnit> = match mode {
+                    NoiseMode::Brown => { generate_brown(&state.clone()) },
+                    _ => { generate_brown(&state.clone()) },
+                };
+            }
             backend.get_stereo()
-            // audio_graph.get_stereo()
         };
 
         let channels = config.channels as usize;
@@ -48,7 +55,7 @@ fn write_to_speaker<T: SizedSample + FromSample<f32>>(
             .build_output_stream(
                 &config,
                 move |data: &mut [T], _: &cpal::OutputCallbackInfo| {
-                    write_data(data, channels, &mut next_value)
+                    write_to_speaker(data, channels, &mut next_value)
                 },
                 err_fn,
                 None,
@@ -58,12 +65,12 @@ fn write_to_speaker<T: SizedSample + FromSample<f32>>(
         stream.play().unwrap();
         loop {
             std::thread::sleep(std::time::Duration::from_millis(1000));
-            config::write(&state);
+            config::write(state.clone().into());
         }
     });
 }
 
-fn write_data<T: SizedSample + FromSample<f32>>(
+fn write_to_speaker<T: SizedSample + FromSample<f32>>(
     output: &mut [T],
     channels: usize,
     next_sample: &mut dyn FnMut() -> (f32, f32),
@@ -78,7 +85,7 @@ fn write_data<T: SizedSample + FromSample<f32>>(
     }
 }
 
-fn create_brown_noise(state: State) -> Box<dyn AudioUnit> {
+fn generate_brown(state: &AudioState) -> Box<dyn AudioUnit> {
     let fade_in_time = 3.0;
     let response_time = 0.1;
 
