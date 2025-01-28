@@ -28,7 +28,10 @@ fn run_graph<T: SizedSample + FromSample<f32>>(
 ) {
     std::thread::spawn(move || {
         let mut net = Net::new(0, 2);
-        let id = net.push(generate_brown(&state));
+
+        let initial_graph = Box::new(unit::<U0, U2>(generate_brown(&state)) >> (declick_s(3.0) | declick_s(3.0)));
+
+        let id = net.push(initial_graph);
         net.pipe_output(id);
         let mut backend = net.backend();
         backend.set_sample_rate(config.sample_rate.0 as f64);
@@ -38,14 +41,16 @@ fn run_graph<T: SizedSample + FromSample<f32>>(
         let mut next_value = move || {
             let poll = rx.try_recv();
             if let Ok(mode) = poll {
+                let mut fade_time = 1.0;
                 let new_graph: Box<dyn AudioUnit> = match mode {
                     NoiseMode::Brown => { generate_brown(&closure_state) },
                     NoiseMode::White => { generate_white(&closure_state) },
                     NoiseMode::Pink => { generate_pink(&closure_state) },
+                    NoiseMode::Muted => { fade_time = 0.30; Box::new(DummyUnit::new(0, 2)) },
                     _ => { generate_brown(&closure_state) },
                 };
                 // net.replace(id, new_graph);
-                net.crossfade(id, Fade::Smooth, 1.0, new_graph);
+                net.crossfade(id, Fade::Smooth, fade_time, new_graph);
                 net.commit();
             }
             backend.get_stereo()

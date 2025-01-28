@@ -52,7 +52,7 @@ enum NoiseMode {
 }
 
 impl NoiseMode {
-    const ALL: [NoiseMode; 3] = [Self::Brown, Self::White, Self::Pink];
+    const ALL: [NoiseMode; 3] = [Self::Brown, Self::Pink, Self::White];
 }
 
 impl std::fmt::Display for NoiseMode {
